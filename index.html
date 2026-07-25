@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 20px; color: #222; }
+    h1 { font-size: 20px; border-bottom: 2px solid #222; padding-bottom: 8px; margin-bottom: 24px; }
+    h2 { font-size: 15px; margin: 32px 0 12px; color: #444; }
+    .meta { font-size: 12px; color: #888; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px; background: #f0f0f0; border: 1px solid #ddd; }
+    td { padding: 8px; border: 1px solid #ddd; vertical-align: top; }
+    td a { color: #0066cc; }
+    tr:nth-child(even) { background: #fafafa; }
+    .section { margin-bottom: 40px; }
+    hr { border: none; border-top: 1px solid #ddd; margin: 32px 0; }
+  </style>
+</head>
+<body>
+
+<h1>My Dashboard</h1>
+<div class="meta">Auto-updated by Claude &bull; <span id="today"></span></div>
+
+<div class="section">
+  <h2>Job Matches &mdash; Daily</h2>
+  <div class="meta" id="jobs-ts">Not yet updated</div>
+  <div id="jobs-table">
+    <table>
+      <thead>
+        <tr><th>Role</th><th>Company</th><th>Location</th><th>Skills</th><th>Link</th></tr>
+      </thead>
+      <tbody id="jobs-body">
+        <tr><td colspan="5" style="color:#888;text-align:center">Job matches will appear here after the first daily update.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<hr />
+
+<div class="section">
+  <h2>Car Launches in India &mdash; Weekly</h2>
+  <div class="meta" id="cars-ts">Last updated: 25 Jul 2026</div>
+  <!-- CARS_DATA -->
+  <table>
+    <thead>
+      <tr><th>Car</th><th>Segment</th><th>Price</th><th>Key Info</th><th>Launch Date</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Maruti Suzuki Brezza Facelift</td>
+        <td>Sub-Compact SUV</td>
+        <td>from &#8377;7.40 L</td>
+        <td>1.5L petrol + new 1.0L turbo, 10.1&quot; screen, 360&#176; camera</td>
+        <td>23 Jul 2026</td>
+      </tr>
+      <tr>
+        <td>Kia Syros EV</td>
+        <td>Compact EV SUV</td>
+        <td>&#8377;13.49&ndash;20 L</td>
+        <td>42 &amp; 51.4 kWh, 526 km range, DC fast charge, BaaS option</td>
+        <td>23 Jul 2026</td>
+      </tr>
+      <tr>
+        <td>Honda ZR-V e:HEV</td>
+        <td>Hybrid SUV</td>
+        <td>&#8377;47.99 L</td>
+        <td>2.0L Atkinson hybrid, 184 PS, 22.8 km/l</td>
+        <td>20 Jul 2026</td>
+      </tr>
+      <tr>
+        <td>Mercedes-AMG E 53 Hybrid</td>
+        <td>Luxury PHEV</td>
+        <td>&#8377;1.45 Cr</td>
+        <td>585 HP, 0&ndash;100 in 4.0s, 100+ km EV range</td>
+        <td>23 Jul 2026</td>
+      </tr>
+    </tbody>
+  </table>
+  <!-- /CARS_DATA -->
+</div>
+
+<script>
+  document.getElementById('today').textContent = new Date().toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'});
+</script>
+</body>
+</html>

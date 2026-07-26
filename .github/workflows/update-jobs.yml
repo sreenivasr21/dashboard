@@ -1,0 +1,137 @@
+name: Update Job Listings
+
+on:
+  schedule:
+    - cron: '30 3 * * *'  # 9:00am IST daily
+  workflow_dispatch:       # allow manual trigger
+
+jobs:
+  update-jobs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch jobs and update dashboard
+        env:
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 << 'EOF'
+          import urllib.request, urllib.parse, json, base64, os, re
+          from datetime import datetime, timezone
+
+          app_id = os.environ["ADZUNA_APP_ID"]
+          app_key = os.environ["ADZUNA_APP_KEY"]
+          gh_token = os.environ["GH_TOKEN"]
+          repo = "sreenivasr21/dashboard"
+          file_path = "index.html"
+          today = datetime.now(timezone.utc).strftime("%-d %b %Y")
+
+          # Fetch jobs from Adzuna
+          queries = [
+              "senior net csharp developer",
+              "dotnet technical lead csharp",
+              "senior csharp developer remote india",
+              "net technical lead bangalore fintech",
+          ]
+
+          seen = set()
+          rows = []
+
+          for q in queries:
+              url = (
+                  "https://api.adzuna.com/v1/api/jobs/in/search/1"
+                  f"?app_id={app_id}&app_key={app_key}"
+                  f"&results_per_page=50&what={urllib.parse.quote(q)}"
+                  "&where=bangalore&sort_by=date&max_days_old=30"
+              )
+              try:
+                  req = urllib.request.Request(url, headers={"Accept": "application/json"})
+                  with urllib.request.urlopen(req, timeout=15) as resp:
+                      data = json.loads(resp.read())
+              except Exception as e:
+                  print(f"Adzuna query failed ({q}): {e}")
+                  continue
+
+              for job in data.get("results", []):
+                  title = job.get("title", "").strip()
+                  company = job.get("company", {}).get("display_name", "").strip()
+                  location = job.get("location", {}).get("display_name", "").strip()
+                  link = job.get("redirect_url", "").strip()
+
+                  # Filter: must match .NET/C# keywords in title
+                  title_lower = title.lower()
+                  if not any(k in title_lower for k in [".net", "dotnet", "c#", "csharp", "asp.net", "asp net", "web api"]):
+                      continue
+
+                  # Dedup by title+company
+                  key = (title.lower(), company.lower())
+                  if key in seen:
+                      continue
+                  seen.add(key)
+
+                  # Build skills from title
+                  skills = []
+                  if any(k in title_lower for k in ["c#", "csharp"]): skills.append("C#")
+                  if any(k in title_lower for k in [".net", "dotnet", "asp"]): skills.append(".NET")
+                  if "aws" in title_lower: skills.append("AWS")
+                  if "azure" in title_lower: skills.append("Azure")
+                  if not skills: skills = ["C# / .NET"]
+                  skills_str = " / ".join(skills)
+
+                  rows.append(
+                      f'<tr><td><a href="{link}" target="_blank">{title}</a></td>'
+                      f'<td>{company}</td><td>{location}</td>'
+                      f'<td>{skills_str}</td>'
+                      f'<td><a href="{link}" target="_blank">Apply</a></td></tr>'
+                  )
+
+          if not rows:
+              rows = [
+                  '<tr><td colspan="5" style="text-align:center;color:#888">'
+                  'No fresh listings found today — check back tomorrow</td></tr>'
+              ]
+
+          tbody_content = "\n".join(rows)
+
+          # Fetch current index.html from GitHub
+          api_url = f"https://api.github.com/repos/{repo}/contents/{file_path}"
+          req = urllib.request.Request(
+              api_url,
+              headers={"Authorization": f"Bearer {gh_token}", "Accept": "application/vnd.github+json"}
+          )
+          with urllib.request.urlopen(req) as resp:
+              file_data = json.loads(resp.read())
+          sha = file_data["sha"]
+          html = base64.b64decode(file_data["content"]).decode("utf-8")
+
+          # Replace tbody and timestamp
+          html = re.sub(
+              r'<tbody id="jobs-body">.*?</tbody>',
+              f'<tbody id="jobs-body">\n{tbody_content}\n</tbody>',
+              html, flags=re.DOTALL
+          )
+          html = re.sub(
+              r'(<div[^>]*id="jobs-ts"[^>]*>)[^<]*(</div>)',
+              f'\\g<1>Updated: {today}\\g<2>',
+              html
+          )
+
+          # Commit back
+          updated = base64.b64encode(html.encode("utf-8")).decode("utf-8")
+          payload = json.dumps({
+              "message": f"Daily job update - {today}",
+              "content": updated,
+              "sha": sha
+          }).encode("utf-8")
+          req = urllib.request.Request(
+              api_url, data=payload, method="PUT",
+              headers={
+                  "Authorization": f"Bearer {gh_token}",
+                  "Accept": "application/vnd.github+json",
+                  "Content-Type": "application/json"
+              }
+          )
+          with urllib.request.urlopen(req) as resp:
+              result = json.loads(resp.read())
+          print(f"Done — {len(rows)} rows written, commit: {result['commit']['sha'][:7]}")
+          EOF

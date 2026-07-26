@@ -45,7 +45,7 @@ jobs:
                   "https://api.adzuna.com/v1/api/jobs/in/search/1"
                   f"?app_id={app_id}&app_key={app_key}"
                   f"&results_per_page=50&what={urllib.parse.quote(q)}"
-                  "&where=bangalore&sort_by=date&max_days_old=30"
+                  "&sort_by=date&max_days_old=30"
               )
               try:
                   req = urllib.request.Request(url, headers={"Accept": "application/json"})
@@ -55,16 +55,14 @@ jobs:
                   print(f"Adzuna query failed ({q}): {e}")
                   continue
 
-              for job in data.get("results", []):
+              results = data.get("results", [])
+              print(f"Query '{q}': {len(results)} raw results")
+
+              for job in results:
                   title = job.get("title", "").strip()
                   company = job.get("company", {}).get("display_name", "").strip()
                   location = job.get("location", {}).get("display_name", "").strip()
                   link = job.get("redirect_url", "").strip()
-
-                  # Filter: must match .NET/C# keywords in title
-                  title_lower = title.lower()
-                  if not any(k in title_lower for k in [".net", "dotnet", "c#", "csharp", "asp.net", "asp net", "web api"]):
-                      continue
 
                   # Dedup by title+company
                   key = (title.lower(), company.lower())
